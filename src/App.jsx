@@ -1,11 +1,52 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const STORAGE_KEY_HABITS = "habit-score.habits.v1";
+
+const DEFAULT_HABITS = [
+  { id: "h1", name: "Walk 20 minutes", category: "Health", points: 2, isDoneToday: false },
+  { id: "h2", name: "Read 10 pages", category: "Mind", points: 1, isDoneToday: true },
+  { id: "h3", name: "Late-night sugar", category: "Food", points: -2, isDoneToday: false },
+];
+
+function safeReadHabitsFromLocalStorage() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY_HABITS);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+
+    const sanitized = parsed
+      .filter((item) => item && typeof item === "object")
+      .map((item) => ({
+        id: typeof item.id === "string" ? item.id : `h_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        name: typeof item.name === "string" ? item.name : "Unnamed",
+        category: typeof item.category === "string" ? item.category : "General",
+        points: Number.isFinite(Number(item.points)) ? Number(item.points) : 0,
+        isDoneToday: Boolean(item.isDoneToday),
+      }));
+
+    return sanitized;
+  } catch (error) {
+    console.warn("Failed to read habits from localStorage:", error);
+    return null;
+  }
+}
+
+function safeWriteHabitsToLocalStorage(habits) {
+  try {
+    const raw = JSON.stringify(habits);
+    window.localStorage.setItem(STORAGE_KEY_HABITS, raw);
+  } catch (error) {
+    console.warn("Failed to write habits to localStorage:", error);
+  }
+}
 
 export default function App() {
-  const [habits, setHabits] = useState([
-    { id: "h1", name: "Walk 20 minutes", category: "Health", points: 2, isDoneToday: false },
-    { id: "h2", name: "Read 10 pages", category: "Mind", points: 1, isDoneToday: true },
-    { id: "h3", name: "Late-night sugar", category: "Food", points: -2, isDoneToday: false },
-  ]);
+  const [habits, setHabits] = useState(DEFAULT_HABITS);
+
+  // IMPORTANT: prevent initial overwrite in dev StrictMode
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
 
   const [habitNameInput, setHabitNameInput] = useState("");
   const [habitCategoryInput, setHabitCategoryInput] = useState("");
@@ -13,6 +54,21 @@ export default function App() {
   const [formError, setFormError] = useState("");
 
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  // Load once on mount (StrictMode may run this twice in dev)
+  useEffect(() => {
+    const storedHabits = safeReadHabitsFromLocalStorage();
+    if (storedHabits && storedHabits.length > 0) {
+      setHabits(storedHabits);
+    }
+    setHasLoadedFromStorage(true);
+  }, []);
+
+  // Save on change ONLY after initial load attempt completed
+  useEffect(() => {
+    if (!hasLoadedFromStorage) return;
+    safeWriteHabitsToLocalStorage(habits);
+  }, [habits, hasLoadedFromStorage]);
 
   const categoriesInList = useMemo(() => {
     const unique = new Set(habits.map((h) => h.category).filter(Boolean));
@@ -88,7 +144,7 @@ export default function App() {
     <div style={styles.page}>
       <header style={styles.header}>
         <h1 style={styles.title}>habit-score</h1>
-        <p style={styles.subtitle}>Category filter added (step 4)</p>
+        <p style={styles.subtitle}>localStorage load/save (fixed) — dev StrictMode safe</p>
       </header>
 
       <main style={styles.main}>
@@ -111,9 +167,7 @@ export default function App() {
             </div>
           </div>
 
-          <p style={styles.mutedSmall}>
-            Score is derived from all habits marked as done today (not filtered).
-          </p>
+          <p style={styles.mutedSmall}>Score is derived from all habits marked as done today.</p>
         </section>
 
         <section style={styles.card}>
@@ -122,11 +176,7 @@ export default function App() {
           <div style={styles.filterRow}>
             <label style={styles.labelInline}>
               Category
-              <select
-                value={selectedCategory}
-                onChange={handleSelectedCategoryChange}
-                style={styles.select}
-              >
+              <select value={selectedCategory} onChange={handleSelectedCategoryChange} style={styles.select}>
                 <option value="All">All</option>
                 {categoriesInList.map((cat) => (
                   <option key={cat} value={cat}>
@@ -137,8 +187,7 @@ export default function App() {
             </label>
 
             <div style={styles.filterMeta}>
-              Showing <strong>{visibleHabits.length}</strong> of{" "}
-              <strong>{habits.length}</strong>
+              Showing <strong>{visibleHabits.length}</strong> of <strong>{habits.length}</strong>
             </div>
           </div>
         </section>
@@ -200,9 +249,7 @@ export default function App() {
           <h2 style={styles.sectionTitle}>Habits</h2>
 
           {visibleHabits.length === 0 ? (
-            <p style={styles.muted}>
-              No habits in this category.
-            </p>
+            <p style={styles.muted}>No habits in this category.</p>
           ) : (
             <ul style={styles.list}>
               {visibleHabits.map((habit) => (
@@ -236,7 +283,7 @@ export default function App() {
       </main>
 
       <footer style={styles.footer}>
-        <small style={styles.muted}>Next: localStorage load/save.</small>
+        <small style={styles.muted}>Next: move inline styles to CSS file + responsive basics.</small>
       </footer>
     </div>
   );
@@ -255,194 +302,37 @@ const styles = {
     margin: "0 auto",
     padding: "12px 0 6px",
   },
-  title: {
-    margin: 0,
-    fontSize: "28px",
-    letterSpacing: "0.3px",
-  },
-  subtitle: {
-    margin: "6px 0 0",
-    color: "#a8b3cf",
-    fontSize: "14px",
-  },
-  main: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    paddingTop: "12px",
-    display: "grid",
-    gap: "12px",
-  },
-  card: {
-    background: "#121a2a",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "12px",
-    padding: "16px",
-  },
-  sectionTitle: {
-    margin: "0 0 12px",
-    fontSize: "16px",
-    color: "#d9e2ff",
-  },
-  muted: {
-    color: "#a8b3cf",
-  },
-  mutedSmall: {
-    color: "#a8b3cf",
-    margin: "10px 0 0",
-    fontSize: "13px",
-  },
-  scoreRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-  },
-  scoreLabel: {
-    color: "#a8b3cf",
-    fontSize: "13px",
-  },
-  scoreValue: {
-    fontSize: "34px",
-    fontWeight: 700,
-    letterSpacing: "0.5px",
-    marginTop: "2px",
-  },
-  scorePill: {
-    padding: "8px 10px",
-    borderRadius: "999px",
-    fontSize: "12px",
-    border: "1px solid rgba(255,255,255,0.10)",
-    flexShrink: 0,
-  },
-  scorePositive: {
-    background: "rgba(34,197,94,0.18)",
-    color: "#bff7d0",
-  },
-  scoreNegative: {
-    background: "rgba(239,68,68,0.14)",
-    color: "#ffd0d0",
-  },
-  filterRow: {
-    display: "flex",
-    gap: "12px",
-    alignItems: "end",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-  labelInline: {
-    display: "grid",
-    gap: "6px",
-    fontSize: "13px",
-    color: "#c7d2fe",
-    minWidth: "220px",
-  },
-  select: {
-    padding: "10px 12px",
-    borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.04)",
-    color: "#e6e6e6",
-    outline: "none",
-  },
-  filterMeta: {
-    color: "#a8b3cf",
-    fontSize: "13px",
-  },
-  form: {
-    display: "grid",
-    gap: "10px",
-  },
-  label: {
-    display: "grid",
-    gap: "6px",
-    fontSize: "13px",
-    color: "#c7d2fe",
-  },
-  input: {
-    padding: "10px 12px",
-    borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.04)",
-    color: "#e6e6e6",
-    outline: "none",
-  },
-  formActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginTop: "6px",
-  },
-  primaryButton: {
-    background: "rgba(99,102,241,0.9)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    color: "#fff",
-    borderRadius: "10px",
-    padding: "10px 12px",
-    cursor: "pointer",
-    fontWeight: 600,
-  },
-  error: {
-    margin: "6px 0 0",
-    color: "#ffd0d0",
-    background: "rgba(239,68,68,0.12)",
-    border: "1px solid rgba(239,68,68,0.25)",
-    padding: "10px 12px",
-    borderRadius: "10px",
-  },
-  list: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-    display: "grid",
-    gap: "10px",
-  },
-  listItem: {
-    padding: "12px",
-    borderRadius: "10px",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.06)",
-  },
-  habitRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "12px",
-    alignItems: "center",
-  },
-  habitLeft: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-    minWidth: 0,
-  },
-  habitName: {
-    fontWeight: 600,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  habitMeta: {
-    fontSize: "13px",
-    color: "#a8b3cf",
-  },
-  toggleButton: {
-    fontSize: "12px",
-    padding: "8px 10px",
-    borderRadius: "999px",
-    border: "1px solid rgba(255,255,255,0.14)",
-    cursor: "pointer",
-    flexShrink: 0,
-    background: "transparent",
-  },
-  toggleOn: {
-    background: "rgba(34,197,94,0.18)",
-    color: "#bff7d0",
-  },
-  toggleOff: {
-    background: "rgba(239,68,68,0.14)",
-    color: "#ffd0d0",
-  },
-  footer: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    paddingTop: "16px",
-  },
+  title: { margin: 0, fontSize: "28px", letterSpacing: "0.3px" },
+  subtitle: { margin: "6px 0 0", color: "#a8b3cf", fontSize: "14px" },
+  main: { maxWidth: "900px", margin: "0 auto", paddingTop: "12px", display: "grid", gap: "12px" },
+  card: { background: "#121a2a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" },
+  sectionTitle: { margin: "0 0 12px", fontSize: "16px", color: "#d9e2ff" },
+  muted: { color: "#a8b3cf" },
+  mutedSmall: { color: "#a8b3cf", margin: "10px 0 0", fontSize: "13px" },
+  scoreRow: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" },
+  scoreLabel: { color: "#a8b3cf", fontSize: "13px" },
+  scoreValue: { fontSize: "34px", fontWeight: 700, letterSpacing: "0.5px", marginTop: "2px" },
+  scorePill: { padding: "8px 10px", borderRadius: "999px", fontSize: "12px", border: "1px solid rgba(255,255,255,0.10)", flexShrink: 0 },
+  scorePositive: { background: "rgba(34,197,94,0.18)", color: "#bff7d0" },
+  scoreNegative: { background: "rgba(239,68,68,0.14)", color: "#ffd0d0" },
+  filterRow: { display: "flex", gap: "12px", alignItems: "end", justifyContent: "space-between", flexWrap: "wrap" },
+  labelInline: { display: "grid", gap: "6px", fontSize: "13px", color: "#c7d2fe", minWidth: "220px" },
+  select: { padding: "10px 12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.16)", background: "rgba(255,255,255,0.04)", color: "#e6e6e6", outline: "none" },
+  filterMeta: { color: "#a8b3cf", fontSize: "13px" },
+  form: { display: "grid", gap: "10px" },
+  label: { display: "grid", gap: "6px", fontSize: "13px", color: "#c7d2fe" },
+  input: { padding: "10px 12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.16)", background: "rgba(255,255,255,0.04)", color: "#e6e6e6", outline: "none" },
+  formActions: { display: "flex", justifyContent: "flex-end", marginTop: "6px" },
+  primaryButton: { background: "rgba(99,102,241,0.9)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", borderRadius: "10px", padding: "10px 12px", cursor: "pointer", fontWeight: 600 },
+  error: { margin: "6px 0 0", color: "#ffd0d0", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)", padding: "10px 12px", borderRadius: "10px" },
+  list: { listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "10px" },
+  listItem: { padding: "12px", borderRadius: "10px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" },
+  habitRow: { display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center" },
+  habitLeft: { display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 },
+  habitName: { fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  habitMeta: { fontSize: "13px", color: "#a8b3cf" },
+  toggleButton: { fontSize: "12px", padding: "8px 10px", borderRadius: "999px", border: "1px solid rgba(255,255,255,0.14)", cursor: "pointer", flexShrink: 0, background: "transparent" },
+  toggleOn: { background: "rgba(34,197,94,0.18)", color: "#bff7d0" },
+  toggleOff: { background: "rgba(239,68,68,0.14)", color: "#ffd0d0" },
+  footer: { maxWidth: "900px", margin: "0 auto", paddingTop: "16px" },
 };
