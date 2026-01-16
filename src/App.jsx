@@ -17,8 +17,14 @@ export default function App() {
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [habits]);
 
+  const dailyScore = useMemo(() => {
+    return habits.reduce((total, habit) => {
+      if (!habit.isDoneToday) return total;
+      return total + habit.points;
+    }, 0);
+  }, [habits]);
+
   function createId() {
-    // Simple id for local state (good enough for this project)
     return `h_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   }
 
@@ -28,7 +34,6 @@ export default function App() {
 
     const trimmedName = habitNameInput.trim();
     const trimmedCategory = habitCategoryInput.trim();
-
     const pointsNumber = Number(habitPointsInput);
 
     if (!trimmedName) {
@@ -54,20 +59,52 @@ export default function App() {
 
     setHabits((currentHabits) => [newHabit, ...currentHabits]);
 
-    // Reset inputs
     setHabitNameInput("");
     setHabitCategoryInput("");
     setHabitPointsInput("1");
+  }
+
+  function handleToggleDoneToday(habitId) {
+    setHabits((currentHabits) =>
+      currentHabits.map((habit) => {
+        if (habit.id !== habitId) return habit;
+        return { ...habit, isDoneToday: !habit.isDoneToday };
+      })
+    );
   }
 
   return (
     <div style={styles.page}>
       <header style={styles.header}>
         <h1 style={styles.title}>habit-score</h1>
-        <p style={styles.subtitle}>Add habits and track points for today (step 2)</p>
+        <p style={styles.subtitle}>Toggle done today and compute daily score (step 3)</p>
       </header>
 
       <main style={styles.main}>
+        <section style={styles.card}>
+          <h2 style={styles.sectionTitle}>Today</h2>
+
+          <div style={styles.scoreRow}>
+            <div>
+              <div style={styles.scoreLabel}>Daily score</div>
+              <div style={styles.scoreValue}>{dailyScore}</div>
+            </div>
+
+            <div
+              style={{
+                ...styles.scorePill,
+                ...(dailyScore >= 0 ? styles.scorePositive : styles.scoreNegative),
+              }}
+            >
+              {dailyScore >= 0 ? "Positive" : "Negative"}
+            </div>
+          </div>
+
+          <p style={styles.mutedSmall}>
+            Score is derived: sum of points from habits marked as done today.
+          </p>
+        </section>
+
         <section style={styles.card}>
           <h2 style={styles.sectionTitle}>Add habit</h2>
 
@@ -131,21 +168,25 @@ export default function App() {
               {habits.map((habit) => (
                 <li key={habit.id} style={styles.listItem}>
                   <div style={styles.habitRow}>
-                    <div style={styles.habitLeft}>
+                    <label style={styles.habitLeft}>
                       <span style={styles.habitName}>{habit.name}</span>
                       <span style={styles.habitMeta}>
                         {habit.category} · {habit.points} pts
                       </span>
-                    </div>
+                    </label>
 
-                    <span
+                    <button
+                      type="button"
+                      onClick={() => handleToggleDoneToday(habit.id)}
                       style={{
-                        ...styles.badge,
-                        ...(habit.isDoneToday ? styles.badgeDone : styles.badgeNotDone),
+                        ...styles.toggleButton,
+                        ...(habit.isDoneToday ? styles.toggleOn : styles.toggleOff),
                       }}
+                      aria-pressed={habit.isDoneToday}
+                      title="Toggle done today"
                     >
                       {habit.isDoneToday ? "Done" : "Not done"}
-                    </span>
+                    </button>
                   </div>
                 </li>
               ))}
@@ -155,7 +196,7 @@ export default function App() {
       </main>
 
       <footer style={styles.footer}>
-        <small style={styles.muted}>Next: toggle done today + daily score.</small>
+        <small style={styles.muted}>Next: filter by category.</small>
       </footer>
     </div>
   );
@@ -204,6 +245,42 @@ const styles = {
   },
   muted: {
     color: "#a8b3cf",
+  },
+  mutedSmall: {
+    color: "#a8b3cf",
+    margin: "10px 0 0",
+    fontSize: "13px",
+  },
+  scoreRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+  },
+  scoreLabel: {
+    color: "#a8b3cf",
+    fontSize: "13px",
+  },
+  scoreValue: {
+    fontSize: "34px",
+    fontWeight: 700,
+    letterSpacing: "0.5px",
+    marginTop: "2px",
+  },
+  scorePill: {
+    padding: "8px 10px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    border: "1px solid rgba(255,255,255,0.10)",
+    flexShrink: 0,
+  },
+  scorePositive: {
+    background: "rgba(34,197,94,0.18)",
+    color: "#bff7d0",
+  },
+  scoreNegative: {
+    background: "rgba(239,68,68,0.14)",
+    color: "#ffd0d0",
   },
   form: {
     display: "grid",
@@ -280,18 +357,20 @@ const styles = {
     fontSize: "13px",
     color: "#a8b3cf",
   },
-  badge: {
+  toggleButton: {
     fontSize: "12px",
-    padding: "6px 10px",
+    padding: "8px 10px",
     borderRadius: "999px",
-    border: "1px solid rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.14)",
+    cursor: "pointer",
     flexShrink: 0,
+    background: "transparent",
   },
-  badgeDone: {
+  toggleOn: {
     background: "rgba(34,197,94,0.18)",
     color: "#bff7d0",
   },
-  badgeNotDone: {
+  toggleOff: {
     background: "rgba(239,68,68,0.14)",
     color: "#ffd0d0",
   },
