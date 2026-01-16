@@ -12,10 +12,17 @@ export default function App() {
   const [habitPointsInput, setHabitPointsInput] = useState("1");
   const [formError, setFormError] = useState("");
 
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
   const categoriesInList = useMemo(() => {
     const unique = new Set(habits.map((h) => h.category).filter(Boolean));
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [habits]);
+
+  const visibleHabits = useMemo(() => {
+    if (selectedCategory === "All") return habits;
+    return habits.filter((habit) => habit.category === selectedCategory);
+  }, [habits, selectedCategory]);
 
   const dailyScore = useMemo(() => {
     return habits.reduce((total, habit) => {
@@ -73,11 +80,15 @@ export default function App() {
     );
   }
 
+  function handleSelectedCategoryChange(event) {
+    setSelectedCategory(event.target.value);
+  }
+
   return (
     <div style={styles.page}>
       <header style={styles.header}>
         <h1 style={styles.title}>habit-score</h1>
-        <p style={styles.subtitle}>Toggle done today and compute daily score (step 3)</p>
+        <p style={styles.subtitle}>Category filter added (step 4)</p>
       </header>
 
       <main style={styles.main}>
@@ -101,8 +112,35 @@ export default function App() {
           </div>
 
           <p style={styles.mutedSmall}>
-            Score is derived: sum of points from habits marked as done today.
+            Score is derived from all habits marked as done today (not filtered).
           </p>
+        </section>
+
+        <section style={styles.card}>
+          <h2 style={styles.sectionTitle}>Filter</h2>
+
+          <div style={styles.filterRow}>
+            <label style={styles.labelInline}>
+              Category
+              <select
+                value={selectedCategory}
+                onChange={handleSelectedCategoryChange}
+                style={styles.select}
+              >
+                <option value="All">All</option>
+                {categoriesInList.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div style={styles.filterMeta}>
+              Showing <strong>{visibleHabits.length}</strong> of{" "}
+              <strong>{habits.length}</strong>
+            </div>
+          </div>
         </section>
 
         <section style={styles.card}>
@@ -161,19 +199,21 @@ export default function App() {
         <section style={styles.card}>
           <h2 style={styles.sectionTitle}>Habits</h2>
 
-          {habits.length === 0 ? (
-            <p style={styles.muted}>No habits yet.</p>
+          {visibleHabits.length === 0 ? (
+            <p style={styles.muted}>
+              No habits in this category.
+            </p>
           ) : (
             <ul style={styles.list}>
-              {habits.map((habit) => (
+              {visibleHabits.map((habit) => (
                 <li key={habit.id} style={styles.listItem}>
                   <div style={styles.habitRow}>
-                    <label style={styles.habitLeft}>
+                    <div style={styles.habitLeft}>
                       <span style={styles.habitName}>{habit.name}</span>
                       <span style={styles.habitMeta}>
                         {habit.category} · {habit.points} pts
                       </span>
-                    </label>
+                    </div>
 
                     <button
                       type="button"
@@ -196,7 +236,7 @@ export default function App() {
       </main>
 
       <footer style={styles.footer}>
-        <small style={styles.muted}>Next: filter by category.</small>
+        <small style={styles.muted}>Next: localStorage load/save.</small>
       </footer>
     </div>
   );
@@ -281,6 +321,32 @@ const styles = {
   scoreNegative: {
     background: "rgba(239,68,68,0.14)",
     color: "#ffd0d0",
+  },
+  filterRow: {
+    display: "flex",
+    gap: "12px",
+    alignItems: "end",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+  },
+  labelInline: {
+    display: "grid",
+    gap: "6px",
+    fontSize: "13px",
+    color: "#c7d2fe",
+    minWidth: "220px",
+  },
+  select: {
+    padding: "10px 12px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.04)",
+    color: "#e6e6e6",
+    outline: "none",
+  },
+  filterMeta: {
+    color: "#a8b3cf",
+    fontSize: "13px",
   },
   form: {
     display: "grid",
