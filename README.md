@@ -1,16 +1,47 @@
-# React + Vite
+# habit-score
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Small MVP built with **React + Vite (JavaScript)**.
 
-Currently, two official plugins are available:
+## Features (MVP)
+- Add habits: `name`, `category`, `points` (can be negative)
+- List habits
+- Toggle `done today`
+- Daily score (derived): sum of points of habits marked as done today
+- Filter by category (All or one category)
+- Persistence with `localStorage` (load on start, save on change)
+- Simple CSS (no frameworks) + basic responsive layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech
+- React (functional components)
+- Vite
+- No external UI libraries
+- Local state: `useState`
+- Derived values: `useMemo`
+- Side effects: `useEffect`
+- localStorage with `try/catch`
 
-## React Compiler
+## Getting Started
+Install and run:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
 
-## Expanding the ESLint configuration
+Open the URL shown in the terminal (usually http://localhost:5173).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Project Structure
+
+src/
+  components/
+    CategoryFilter.jsx
+    HabitForm.jsx
+    HabitList.jsx
+    ScoreBar.jsx
+  utils/
+    storage.js
+  App.jsx
+  App.css
+
+## Notes
+In dev, React StrictMode may run effects twice; the app prevents overwriting storage before initial load completes.
+
