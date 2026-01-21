@@ -36,3 +36,20 @@ dist
 .env
 /frontend/.env
 /backend/.env
+
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Prisma / Database
+# =========================
+*.db
+*.db-journal
+
+# Prisma engine cache (optional, safe to ignore)
+.prisma/
