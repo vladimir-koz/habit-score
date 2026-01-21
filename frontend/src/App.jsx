@@ -15,6 +15,7 @@ import {
   fetchHabits,
   createHabit as apiCreateHabit,
   toggleHabitDoneToday as apiToggleHabitDoneToday,
+  deleteHabit as apiDeleteHabit,
 } from "./utils/api";
 
 const DEFAULT_HABITS = [
@@ -33,18 +34,27 @@ function isTempId(id) {
 
 export default function App() {
   const [habits, setHabits] = useState(DEFAULT_HABITS);
-
-  // Prevents initial overwrite in dev StrictMode + helps for offline-first loading
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // Integration states
   const [isLoading, setIsLoading] = useState(true);
   const [isApiAvailable, setIsApiAvailable] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // 1) Initial load: try API, fallback to localStorage, fallback to defaults
+  async function loadFromApiAndUpdateState() {
+    const apiHabits = await fetchHabits();
+
+    if (Array.isArray(apiHabits) && apiHabits.length > 0) {
+      setHabits(apiHabits);
+      safeWriteHabitsToLocalStorage(apiHabits);
+    } else if (Array.isArray(apiHabits) && apiHabits.length === 0) {
+      // Server has no data: keep local (do not wipe local)
+      // This avoids accidental deletion of offline data.
+    }
+  }
+
+  // Initial load: try API, fallback to localStorage, fallback to defaults
   useEffect(() => {
     let isCancelled = false;
 
@@ -53,24 +63,14 @@ export default function App() {
       setErrorMessage("");
 
       try {
-        const apiHabits = await fetchHabits();
+        await loadFromApiAndUpdateState();
         if (isCancelled) return;
-
-        if (Array.isArray(apiHabits) && apiHabits.length > 0) {
-          setHabits(apiHabits);
-          // keep offline copy updated
-          safeWriteHabitsToLocalStorage(apiHabits);
-        }
-
         setIsApiAvailable(true);
       } catch (error) {
         if (isCancelled) return;
 
-        // API failed -> offline fallback
         setIsApiAvailable(false);
-        setErrorMessage(
-          `Backend API not available. Using offline data (localStorage).`
-        );
+        setErrorMessage("Backend API not available. Using offline data (localStorage).");
 
         const storedHabits = safeReadHabitsFromLocalStorage();
         if (storedHabits && storedHabits.length > 0) {
@@ -92,7 +92,7 @@ export default function App() {
     };
   }, []);
 
-  // 2) Always persist locally after initial load attempt
+  // Always persist locally after initial load attempt
   useEffect(() => {
     if (!hasLoadedInitialData) return;
     safeWriteHabitsToLocalStorage(habits);
@@ -119,42 +119,46 @@ export default function App() {
     setSelectedCategory(event.target.value);
   }
 
+  // Manual sync button
+  async function handleTrySync() {
+    setErrorMessage("");
+    setIsLoading(true);
+
+    try {
+      await loadFromApiAndUpdateState();
+      setIsApiAvailable(true);
+      setErrorMessage("");
+    } catch (error) {
+      setIsApiAvailable(false);
+      setErrorMessage("Sync failed. Backend still not available. Staying offline.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   // OFFLINE-FIRST: optimistic UI + best-effort sync
   async function handleAddHabit({ name, category, points }) {
     setErrorMessage("");
 
     const tempId = createTempId();
-    const tempHabit = {
-      id: tempId,
-      name,
-      category,
-      points,
-      isDoneToday: false,
-    };
+    const tempHabit = { id: tempId, name, category, points, isDoneToday: false };
 
-    // optimistic: show instantly
     setHabits((current) => [tempHabit, ...current]);
 
     if (!isApiAvailable) return;
 
     try {
       const createdHabit = await apiCreateHabit({ name, category, points });
-
-      // replace temp habit with server habit
-      setHabits((current) =>
-        current.map((h) => (h.id === tempId ? createdHabit : h))
-      );
+      setHabits((current) => current.map((h) => (h.id === tempId ? createdHabit : h)));
     } catch (error) {
-      // keep offline habit, mark API unavailable for now
       setIsApiAvailable(false);
-      setErrorMessage(`Failed to sync with backend. Staying offline.`);
+      setErrorMessage("Failed to sync with backend. Staying offline.");
     }
   }
 
   async function handleToggleDoneToday(habitId) {
     setErrorMessage("");
 
-    // optimistic toggle
     setHabits((current) =>
       current.map((habit) => {
         if (habit.id !== habitId) return habit;
@@ -162,20 +166,31 @@ export default function App() {
       })
     );
 
-    // temp habits cannot be toggled on server (they do not exist there)
     if (!isApiAvailable || isTempId(habitId)) return;
 
     try {
       const updatedHabit = await apiToggleHabitDoneToday(habitId);
-
-      // ensure client state matches server
-      setHabits((current) =>
-        current.map((h) => (h.id === habitId ? updatedHabit : h))
-      );
+      setHabits((current) => current.map((h) => (h.id === habitId ? updatedHabit : h)));
     } catch (error) {
-      // stay offline, keep optimistic result
       setIsApiAvailable(false);
-      setErrorMessage(`Failed to sync toggle with backend. Staying offline.`);
+      setErrorMessage("Failed to sync toggle with backend. Staying offline.");
+    }
+  }
+
+  async function handleDeleteHabit(habitId) {
+    setErrorMessage("");
+
+    // remove locally first (offline-first)
+    setHabits((current) => current.filter((h) => h.id !== habitId));
+
+    // if offline or temp -> done
+    if (!isApiAvailable || isTempId(habitId)) return;
+
+    try {
+      await apiDeleteHabit(habitId);
+    } catch (error) {
+      setIsApiAvailable(false);
+      setErrorMessage("Failed to sync delete with backend. Staying offline.");
     }
   }
 
@@ -183,6 +198,7 @@ export default function App() {
     <div className="container">
       <header className="header">
         <h1 className="title">habit-score</h1>
+
         <p className="subtitle">
           {isLoading
             ? "Loading..."
@@ -190,6 +206,18 @@ export default function App() {
             ? "Online mode (API + localStorage backup)"
             : "Offline mode (localStorage)"}
         </p>
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "10px" }}>
+          <button
+            type="button"
+            className="primaryButton"
+            onClick={handleTrySync}
+            disabled={isLoading}
+            title="Try to fetch from backend and switch to online mode"
+          >
+            Try to sync
+          </button>
+        </div>
 
         {errorMessage ? (
           <p className="error" style={{ marginTop: "10px" }}>
@@ -211,12 +239,16 @@ export default function App() {
 
         <HabitForm categoriesInList={categoriesInList} onAddHabit={handleAddHabit} />
 
-        <HabitList habits={visibleHabits} onToggleDoneToday={handleToggleDoneToday} />
+        <HabitList
+          habits={visibleHabits}
+          onToggleDoneToday={handleToggleDoneToday}
+          onDeleteHabit={handleDeleteHabit}
+        />
       </main>
 
       <footer className="footer">
         <small className="muted">
-          Offline-first: UI works without backend. When backend is available, it syncs best-effort.
+          Offline-first. Use “Try to sync” to switch back to online when backend is available.
         </small>
       </footer>
     </div>

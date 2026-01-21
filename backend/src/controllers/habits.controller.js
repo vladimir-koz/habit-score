@@ -1,14 +1,11 @@
 import {
     createHabit,
+    deleteHabit,
     getAllHabits,
     toggleHabitDoneToday,
 } from "../services/habits.service.js";
 
 import { createErrorDTO, validateCreateHabitDTO } from "../dtos/habits.dto.js";
-
-/**
- * Controller: HTTP in / HTTP out
- */
 
 export function getHabitsController(req, res) {
     const habits = getAllHabits();
@@ -30,17 +27,35 @@ export function createHabitController(req, res) {
 export function toggleHabitDoneTodayController(req, res) {
     const habitId = req.params.habitId;
 
+if (typeof habitId !== "string" || habitId.trim().length === 0) {
+    res.status(400).json(createErrorDTO("VALIDATION_ERROR", "Parameter 'habitId' is required."));
+    return;
+}
+
+const updatedHabit = toggleHabitDoneToday(habitId);
+
+if (!updatedHabit) {
+    res.status(404).json(createErrorDTO("NOT_FOUND", "Habit not found."));
+    return;
+}
+
+res.status(200).json(updatedHabit);
+}
+
+export function deleteHabitController(req, res) {
+    const habitId = req.params.habitId;
+
     if (typeof habitId !== "string" || habitId.trim().length === 0) {
         res.status(400).json(createErrorDTO("VALIDATION_ERROR", "Parameter 'habitId' is required."));
         return;
     }
 
-    const updatedHabit = toggleHabitDoneToday(habitId);
+    const deleted = deleteHabit(habitId);
 
-    if (!updatedHabit) {
+    if (!deleted) {
         res.status(404).json(createErrorDTO("NOT_FOUND", "Habit not found."));
         return;
     }
 
-    res.status(200).json(updatedHabit);
+    res.status(204).end();
 }

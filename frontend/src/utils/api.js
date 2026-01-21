@@ -22,9 +22,9 @@ export async function fetchHabits() {
 
 export async function createHabit(createHabitDTO) {
     const response = await fetch(`${API_BASE_URL}/habits`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createHabitDTO),
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(createHabitDTO),
     });
 
     if (!response.ok) {
@@ -38,7 +38,7 @@ export async function createHabit(createHabitDTO) {
 
 export async function toggleHabitDoneToday(habitId) {
     const response = await fetch(`${API_BASE_URL}/habits/${habitId}/toggle`, {
-        method: "PATCH",
+    method: "PATCH",
     });
 
     if (!response.ok) {
@@ -48,4 +48,18 @@ export async function toggleHabitDoneToday(habitId) {
     }
 
     return parseJsonResponse(response);
+}
+
+export async function deleteHabit(habitId) {
+    const response = await fetch(`${API_BASE_URL}/habits/${habitId}`, {
+    method: "DELETE",
+    });
+
+    if (response.status === 204) return;
+
+    if (!response.ok) {
+        const body = await parseJsonResponse(response);
+        const message = body?.message || `Failed to delete habit (status ${response.status}).`;
+        throw new Error(message);
+    }
 }

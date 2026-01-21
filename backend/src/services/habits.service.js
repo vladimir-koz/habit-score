@@ -19,10 +19,6 @@ export function getAllHabits() {
     return habitsStore;
 }
 
-/**
- * Create a new habit in the in-memory store.
- * Input is already validated DTO: { name, category, points }
- */
 export function createHabit(createHabitDTO) {
     const newHabit = {
         id: createId(),
@@ -32,20 +28,26 @@ export function createHabit(createHabitDTO) {
         isDoneToday: false,
     };
 
-    // newest first
     habitsStore.unshift(newHabit);
-
     return newHabit;
 }
 
-/**
- * Toggle isDoneToday for a habit by id.
- * Returns the updated habit, or null if not found.
- */
 export function toggleHabitDoneToday(habitId) {
     const habit = habitsStore.find((h) => h.id === habitId);
     if (!habit) return null;
 
     habit.isDoneToday = !habit.isDoneToday;
     return habit;
+}
+
+/**
+ * Delete habit by id.
+ * Returns true if deleted, false if not found.
+ */
+export function deleteHabit(habitId) {
+    const index = habitsStore.findIndex((h) => h.id === habitId);
+    if (index === -1) return false;
+
+    habitsStore.splice(index, 1);
+    return true;
 }
