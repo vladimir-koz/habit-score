@@ -1,59 +1,59 @@
 import {
-    createHabit,
-    deleteHabit,
     getAllHabits,
+    createHabit,
     toggleHabitDoneToday,
+    deleteHabit,
 } from "../services/habits.service.js";
 
 import { createErrorDTO, validateCreateHabitDTO } from "../dtos/habits.dto.js";
 
-export function getHabitsController(req, res) {
-    const habits = getAllHabits();
+export async function getHabitsController(req, res) {
+    const habits = await getAllHabits();
     res.status(200).json(habits);
 }
 
-export function createHabitController(req, res) {
-    const validationResult = validateCreateHabitDTO(req.body);
+export async function createHabitController(req, res) {
+const validationResult = validateCreateHabitDTO(req.body);
 
-    if (!validationResult.ok) {
-        res.status(400).json(validationResult.error);
-        return;
-    }
-
-    const createdHabit = createHabit(validationResult.value);
-    res.status(201).json(createdHabit);
-}
-
-export function toggleHabitDoneTodayController(req, res) {
-    const habitId = req.params.habitId;
-
-if (typeof habitId !== "string" || habitId.trim().length === 0) {
-    res.status(400).json(createErrorDTO("VALIDATION_ERROR", "Parameter 'habitId' is required."));
+if (!validationResult.ok) {
+    res.status(400).json(validationResult.error);
     return;
 }
 
-const updatedHabit = toggleHabitDoneToday(habitId);
+const habit = await createHabit(validationResult.value);
+res.status(201).json(habit);
+}
 
-if (!updatedHabit) {
-    res.status(404).json(createErrorDTO("NOT_FOUND", "Habit not found."));
+export async function toggleHabitDoneTodayController(req, res) {
+const habitId = req.params.habitId;
+
+if (!habitId) {
+    res.status(400).json(createErrorDTO("VALIDATION_ERROR", "habitId is required"));
     return;
 }
 
-res.status(200).json(updatedHabit);
+const habit = await toggleHabitDoneToday(habitId);
+
+if (!habit) {
+    res.status(404).json(createErrorDTO("NOT_FOUND", "Habit not found"));
+    return;
 }
 
-export function deleteHabitController(req, res) {
+res.status(200).json(habit);
+}
+
+export async function deleteHabitController(req, res) {
     const habitId = req.params.habitId;
 
-    if (typeof habitId !== "string" || habitId.trim().length === 0) {
-        res.status(400).json(createErrorDTO("VALIDATION_ERROR", "Parameter 'habitId' is required."));
+    if (!habitId) {
+        res.status(400).json(createErrorDTO("VALIDATION_ERROR", "habitId is required"));
         return;
     }
 
-    const deleted = deleteHabit(habitId);
+    const deleted = await deleteHabit(habitId);
 
     if (!deleted) {
-        res.status(404).json(createErrorDTO("NOT_FOUND", "Habit not found."));
+        res.status(404).json(createErrorDTO("NOT_FOUND", "Habit not found"));
         return;
     }
 

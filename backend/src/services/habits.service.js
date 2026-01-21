@@ -1,53 +1,42 @@
-/**
- * Habits Service
- * ----------------
- * Business logic layer.
- * Does NOT know about HTTP.
- */
+import { prisma } from "../db/prisma.js";
 
-const habitsStore = [
-    { id: "h1", name: "Walk 20 minutes", category: "Health", points: 2, isDoneToday: false },
-    { id: "h2", name: "Read 10 pages", category: "Mind", points: 1, isDoneToday: true },
-    { id: "h3", name: "Late-night sugar", category: "Food", points: -2, isDoneToday: false },
-];
-
-function createId() {
-    return `h_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+export async function getAllHabits() {
+    return prisma.habit.findMany({
+        orderBy: { createdAt: "desc" },
+    });
 }
 
-export function getAllHabits() {
-    return habitsStore;
-}
-
-export function createHabit(createHabitDTO) {
-    const newHabit = {
-        id: createId(),
+export async function createHabit(createHabitDTO) {
+    return prisma.habit.create({
+        data: {
         name: createHabitDTO.name,
         category: createHabitDTO.category,
-        points: createHabitDTO.points,
+        points: Math.trunc(createHabitDTO.points),
         isDoneToday: false,
-    };
-
-    habitsStore.unshift(newHabit);
-    return newHabit;
+        },
+    });
 }
 
-export function toggleHabitDoneToday(habitId) {
-    const habit = habitsStore.find((h) => h.id === habitId);
-    if (!habit) return null;
+export async function toggleHabitDoneToday(habitId) {
+    const existing = await prisma.habit.findUnique({
+        where: { id: habitId },
+    });
 
-    habit.isDoneToday = !habit.isDoneToday;
-    return habit;
+    if (!existing) return null;
+
+    return prisma.habit.update({
+        where: { id: habitId },
+        data: { isDoneToday: !existing.isDoneToday },
+    });
 }
 
-/**
- * Delete habit by id.
- * Returns true if deleted, false if not found.
- */
-export function deleteHabit(habitId) {
-    const index = habitsStore.findIndex((h) => h.id === habitId);
-    if (index === -1) return false;
-
-    habitsStore.splice(index, 1);
-    return true;
+export async function deleteHabit(habitId) {
+    try {
+        await prisma.habit.delete({
+        where: { id: habitId },
+        });
+        return true;
+    } catch {
+        return false;
+    }
 }
