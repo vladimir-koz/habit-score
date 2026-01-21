@@ -1,20 +1,39 @@
 /**
  * Habits Service
  * ----------------
- * This layer contains business logic.
- * It does NOT know anything about HTTP or Express.
+ * Business logic layer.
+ * Does NOT know about HTTP.
  */
 
-const hardcodedHabits = [
+const habitsStore = [
     { id: "h1", name: "Walk 20 minutes", category: "Health", points: 2, isDoneToday: false },
     { id: "h2", name: "Read 10 pages", category: "Mind", points: 1, isDoneToday: true },
     { id: "h3", name: "Late-night sugar", category: "Food", points: -2, isDoneToday: false },
 ];
 
-/**
-   * Returns the list of habits.
-   * In the future this will query the database.
-*/
+function createId() {
+return `h_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
 export function getAllHabits() {
-    return hardcodedHabits;
+return habitsStore;
+}
+
+/**
+ * Create a new habit in the in-memory store.
+ * Input is already validated DTO: { name, category, points }
+ */
+export function createHabit(createHabitDTO) {
+    const newHabit = {
+        id: createId(),
+        name: createHabitDTO.name,
+        category: createHabitDTO.category,
+        points: createHabitDTO.points,
+        isDoneToday: false,
+    };
+
+    // newest first
+    habitsStore.unshift(newHabit);
+
+    return newHabit;
 }
