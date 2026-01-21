@@ -12,11 +12,11 @@ const habitsStore = [
 ];
 
 function createId() {
-return `h_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    return `h_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
 export function getAllHabits() {
-return habitsStore;
+    return habitsStore;
 }
 
 /**
@@ -36,4 +36,16 @@ export function createHabit(createHabitDTO) {
     habitsStore.unshift(newHabit);
 
     return newHabit;
+}
+
+/**
+ * Toggle isDoneToday for a habit by id.
+ * Returns the updated habit, or null if not found.
+ */
+export function toggleHabitDoneToday(habitId) {
+    const habit = habitsStore.find((h) => h.id === habitId);
+    if (!habit) return null;
+
+    habit.isDoneToday = !habit.isDoneToday;
+    return habit;
 }

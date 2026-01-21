@@ -1,12 +1,8 @@
 /**
  * DTO validation (manual, no external libraries)
- * ----------------------------------------------
- * This file validates incoming data and returns:
- * - { ok: true, value: normalizedDto }
- * - { ok: false, error: ErrorDTO }
  */
 
-function createErrorDTO(errorCode, message) {
+export function createErrorDTO(errorCode, message) {
     return { errorCode, message };
 }
 
