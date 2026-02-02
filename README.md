@@ -1,83 +1,143 @@
-habit-score
+# habit-score
 
-Aplicación fullstack para registrar hábitos diarios y calcular un puntaje de balance personal.
+Aplicación fullstack para registrar hábitos diarios y calcular un puntaje de balance personal.  
 Proyecto pensado como aprendizaje real y portfolio técnico, con frontend desacoplado, backend persistente y modo offline-first.
 
-DESCRIPCIÓN GENERAL
+## Descripción
 
-habit-score permite registrar hábitos diarios y calcular un puntaje basado en acciones positivas y negativas.
-El usuario puede crear hábitos con nombre, categoría y puntaje, marcarlos como realizados en el día y ver el puntaje diario resultante.
-La aplicación puede funcionar sin backend usando almacenamiento local y sincronizar con el servidor cuando está disponible.
+habit-score permite crear hábitos con nombre, categoría y puntaje (positivo o negativo), marcarlos como realizados en el día y calcular un puntaje diario en base a esas acciones.
+
+La aplicación puede funcionar sin backend utilizando localStorage y sincronizar con un backend cuando está disponible.
 
 El proyecto está organizado como un monorepo con frontend y backend separados, conectados mediante una API REST versionada.
 
-STACK TECNOLÓGICO
+## Stack tecnológico
 
-Frontend: React, Vite, JavaScript sin TypeScript, CSS puro sin frameworks.
-El manejo de estado se realiza con useState y useMemo.
-La persistencia offline se implementa mediante localStorage.
+### Frontend
+- React
+- Vite
+- JavaScript (sin TypeScript)
+- CSS puro (sin frameworks)
+- useState y useMemo para manejo de estado
+- Persistencia offline con localStorage
 
-Backend: Node.js, Express y arquitectura por capas separando rutas, controladores, servicios y DTOs.
-La API es REST y está versionada bajo /api/v1.
-La persistencia se realiza con Prisma ORM y una base de datos SQLite local.
+### Backend
+- Node.js
+- Express
+- API REST (/api/v1)
+- Prisma ORM
+- SQLite
+- dotenv para variables de entorno
 
-ESTRUCTURA DEL REPOSITORIO
+## Estructura del repositorio
 
-habit-score contiene las carpetas frontend, backend, docs y scripts.
-Frontend incluye el código React con Vite.
-Backend incluye Express, Prisma, el esquema de base de datos y las migraciones.
-Docs contiene la especificación de la API.
-Scripts incluye utilidades para desarrollo en modo monorepo.
+habit-score/
+├─ frontend/
+├─ backend/
+├─ docs/
+├─ scripts/
+├─ package.json
+└─ README.md
 
-API
+## Variables de entorno
 
-La API del proyecto está documentada en el archivo docs/api-spec-v1.md.
-Ese archivo define los endpoints disponibles, los DTOs, las reglas de validación y el formato de errores.
-El frontend consume exclusivamente esta API y no conoce detalles de base de datos ni del ORM.
+### Backend
 
-MODO OFFLINE-FIRST
+Crear el archivo backend/.env (no se versiona).  
+Usar backend/.env.template como referencia.
 
-Al iniciar la aplicación, el frontend intenta obtener los hábitos desde la API.
-Si el backend no está disponible, se cargan los datos desde localStorage.
+Ejemplo:
 
-Al crear o modificar hábitos, la interfaz se actualiza inmediatamente.
-Los datos se guardan siempre en localStorage.
-Si el backend está disponible, se intenta sincronizar la información.
+DATABASE_URL="file:./dev.db"  
+PORT=3000  
+CORS_ALLOWED_ORIGINS="http://localhost:5173,http://localhost:5174"
 
-Este enfoque permite usar la aplicación sin conexión, evitar pérdida de datos y mantener una experiencia fluida.
+### Frontend
 
-SCRIPTS DISPONIBLES
+Archivo opcional frontend/.env.
 
-Desde la raíz del repositorio se puede ejecutar npm run dev para levantar frontend y backend en paralelo.
-El frontend corre en localhost en el puerto que asigne Vite.
-El backend corre en http://localhost:3000.
+VITE_API_BASE_URL=/api/v1
 
-También es posible levantar solo el frontend con npm run dev:frontend o solo el backend con npm run dev:backend.
+## Instalación
 
-BASE DE DATOS
+Backend:
 
-La base de datos utiliza SQLite mediante Prisma.
-Las migraciones se ejecutan desde la carpeta backend con prisma migrate dev.
-La base puede inspeccionarse visualmente usando prisma studio.
+cd backend  
+npm install
 
-El archivo de base de datos no se versiona.
-El esquema y las migraciones sí se versionan.
+Frontend:
 
-REQUISITOS
+cd frontend  
+npm install
 
-Node.js versión 20.19 o superior, o 22.12 o superior.
-npm.
+## Desarrollo
 
-ESTADO DEL PROYECTO
+Levantar frontend y backend en paralelo desde la raíz:
 
-El frontend es funcional.
-El backend es funcional.
-Existe persistencia real con SQLite.
-La API versión 1 es estable.
-El proyecto está preparado para extenderse con nuevas funcionalidades.
+npm run dev
 
-NOTAS FINALES
+Comandos individuales:
 
-Este proyecto está pensado para aprendizaje técnico real y para demostrar criterio arquitectónico.
-Sirve como base para futuras iteraciones y mejoras.
-No se utilizan frameworks de UI ni librerías externas innecesarias.
+npm run dev:backend  
+npm run dev:frontend
+
+En desarrollo, el frontend usa proxy de Vite para acceder a la API sin problemas de CORS.
+
+## Producción local (simulada)
+
+El backend sirve el frontend compilado y la API bajo el mismo origin.
+
+Build del frontend:
+
+npm run build:frontend
+
+Iniciar backend sirviendo el frontend:
+
+npm run start:backend
+
+O todo junto:
+
+npm run prod
+
+La aplicación queda disponible en:
+
+http://localhost:3000
+
+Health check de la API:
+
+http://localhost:3000/api/v1/health
+
+## Base de datos (Prisma)
+
+Migraciones:
+
+npx prisma migrate dev
+
+Ver base de datos:
+
+npx prisma studio
+
+Notas:
+- El esquema y las migraciones se versionan
+- El archivo SQLite (*.db) no se versiona
+
+## API
+
+La especificación de la API se encuentra en:
+
+docs/api-spec-v1.md
+
+Incluye endpoints, DTOs, validaciones y formato de errores.
+
+## Estado del proyecto
+
+- Frontend funcional
+- Backend funcional
+- Persistencia real con SQLite
+- Modo offline-first
+- Arquitectura preparada para producción
+
+## Notas finales
+
+Proyecto pensado como base sólida para aprendizaje real, portfolio profesional y futura evolución a producto vendible.  
+No se utilizan frameworks de UI ni librerías innecesarias.
