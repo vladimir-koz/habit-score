@@ -3,32 +3,29 @@ import habitsRouter from "./routes/habits.routes.js";
 
 const app = express();
 
-/**
- * CORS (DEV) - no external libraries
- * Allows frontend (Vite) on localhost:5173 to call backend on localhost:3000
- */
+/* middleware CORS  */
 app.use((req, res, next) => {
-        const origin = req.headers.origin;
+    const origin = req.headers.origin;
 
-    // Allow localhost (any port) during development
-    const isLocalhost =
-        typeof origin === "string" &&
-        (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"));
+    const allowedRaw= process.env.CORS_ALLOWED_ORIGINS || "";
+    const allowedOrigins=allowedRaw
+    .split(",")
+    .map((value)=> value.trim())
+    .filter(Boolean);
 
-    if (isLocalhost) {
-        res.setHeader("Access-Control-Allow-Origin", origin);
+    if(typeof origin== "string" && allowedOrigins.includes(origin)) {
+        res.setHeader("Access-Control-Allow-Origin",origin);
     }
 
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
+    res.setHeader("Vary","Origin");
+    res.setHeader("Access-Control-Allow-Methods","GET,POST,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    if (req.method === "OPTIONS") {
+    if(req.method === "OPTIONS"){
         res.status(204).end();
         return;
     }
-
-    next();
+    next();    
 });
 
 
