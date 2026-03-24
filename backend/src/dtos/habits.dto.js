@@ -1,7 +1,3 @@
-/**
- * DTO validation (manual, no external libraries)
- */
-
 export function createErrorDTO(errorCode, message) {
     return { errorCode, message };
 }
