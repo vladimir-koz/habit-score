@@ -31,13 +31,13 @@ El proyecto está organizado como un monorepo con frontend y backend separados, 
 
 ## Estructura del repositorio
 
-habit-score/
-├─ frontend/
-├─ backend/
-├─ docs/
-├─ scripts/
-├─ package.json
-└─ README.md
+  habit-score/
+  ├─ frontend/
+  ├─ backend/
+  ├─ docs/
+  ├─ scripts/
+  ├─ package.json
+  └─ README.md
 
 ## Variables de entorno
 
